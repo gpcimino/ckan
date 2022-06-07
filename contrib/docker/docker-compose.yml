@@ -15,12 +15,12 @@ services:
     build:
       context: ../../
     depends_on:
-      db:
-        condition: service_healthy
-      solr:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - db
+        #condition: service_healthy
+      - solr
+        #condition: service_healthy
+      - redis
+        #condition: service_healthy
     ports:
       - "0.0.0.0:${CKAN_PORT}:5000"
     environment:
