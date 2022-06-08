@@ -69,5 +69,17 @@ if [ -z "$CKAN_DATAPUSHER_URL" ]; then
 fi
 
 set_environment
+
+# ckanext harvester
+#sed -i '/[app:main]/a ckan.harvest.mq.type=redis' $CKAN_CONFIG
+#sed -i  '/ckan.plugins\s*=\s*\w*/ s/$/ ckan_harvester/' $CKAN_CONFIG
+###################
+
+
 ckan --config "$CONFIG" db init
+
+ckan --config "$CONFIG" harvester initdb
+
+ckan -config  "$CONFIG"  user add admin  password=12345678 email=admin@ckan.org name=admin
+
 exec "$@"

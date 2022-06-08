@@ -60,7 +60,12 @@ RUN mkdir -p $CKAN_VENV $CKAN_CONFIG $CKAN_STORAGE_PATH && \
 ENV PATH=${CKAN_VENV}/bin:${PATH}  
 
 # Setup CKAN
-ADD . $CKAN_VENV/src/ckan/
+#ADD . $CKAN_VENV/src/ckan/
+
+RUN git clone https://github.com/ckan/ckan.git $CKAN_VENV/src/ckan 
+
+RUN find  $CKAN_VENV/src -type f
+
 RUN ckan-pip3 install -U pip && \
     ckan-pip3 install --upgrade --no-cache-dir -r $CKAN_VENV/src/ckan/requirement-setuptools.txt && \
     ckan-pip3 install --upgrade --no-cache-dir -r $CKAN_VENV/src/ckan/requirements.txt && \
@@ -70,15 +75,35 @@ RUN ckan-pip3 install -U pip && \
     chmod +x /ckan-entrypoint.sh && \
     chown -R ckan:ckan $CKAN_HOME $CKAN_VENV $CKAN_CONFIG $CKAN_STORAGE_PATH
 
-FROM base AS test
-RUN ckan-pip3 install -r $CKAN_VENV/src/ckan/dev-requirements.txt && \
-    ckan-pip3 install pytest-ckan && \
-    cp -v $CKAN_VENV/src/ckan/contrib/docker/ckan-test-entrypoint.sh /ckan-test-entrypoint.sh && \
-    chmod +x /ckan-test-entrypoint.sh
+##################
 
-WORKDIR $CKAN_VENV/src/ckan/
-ENTRYPOINT ["/ckan-test-entrypoint.sh"]
-CMD ["python", "-m", "pytest", "-v"]
+ADD production.ini $CKAN_CONFIG/
+
+RUN ckan-pip3 install -e git+https://github.com/ckan/ckanext-spatial.git#egg=ckanext-spatial && \
+    ckan-pip3 install -r $CKAN_VENV/src/ckanext-spatial/pip-requirements.txt
+
+RUN ckan-pip3 install -e git+https://github.com/ckan/ckanext-harvest.git#egg=ckanext-harvest && \
+    ckan-pip3 install -r $CKAN_VENV/src/ckanext-harvest/pip-requirements.txt 
+
+ #   sed -i  '/ckan.plugins\s*=\s*\w*/ s/$/ ckan_harvester/' $CKAN_CONFIG/production.ini
+###################
+
+
+
+
+
+#FROM base AS test
+
+#RUN ckan-pip3 install -r $CKAN_VENV/src/ckan/dev-requirements.txt && \
+#    ckan-pip3 install pytest-ckan && \
+#    cp -v $CKAN_VENV/src/ckan/contrib/docker/ckan-test-entrypoint.sh /ckan-test-entrypoint.sh && \
+#    chmod +x /ckan-test-entrypoint.sh
+
+#WORKDIR $CKAN_VENV/src/ckan/
+
+#ENTRYPOINT ["/ckan-test-entrypoint.sh"]
+
+#CMD ["python", "-m", "pytest", "-v"]
 
 FROM base AS prod
 
@@ -86,5 +111,7 @@ ENTRYPOINT ["/ckan-entrypoint.sh"]
 
 USER ckan
 EXPOSE 5000
+
+#ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 CMD ["ckan","-c","/etc/ckan/production.ini", "run", "--host", "0.0.0.0"]
